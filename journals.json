@@ -38,5 +38,13 @@
     "session_date": "2026-08-03",
     "url": "https://cindy-build-journals.netlify.app/slackalert/1785766651/",
     "published_at": "2026-08-03T14:21:04.573Z"
+  },
+  {
+    "project_name": "Slack Alert Test 5",
+    "document_type": "Build Journal",
+    "build_status": "In Progress",
+    "session_date": "2026-08-03",
+    "url": "https://cindy-build-journals.netlify.app/slackalert/1785767370/",
+    "published_at": "2026-08-03T14:31:00.654Z"
   }
 ]
