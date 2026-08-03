@@ -1,0 +1,116 @@
+<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><title>Build Journals — The Brave Pivot</title><style>
+@import url('https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;600;700&family=Montserrat:wght@400;500;600;700&family=Ubuntu:wght@400;500&display=swap');
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body { font-family: 'Montserrat', system-ui, sans-serif; background: #ffffff; color: #2b384b; line-height: 1.65; -webkit-font-smoothing: antialiased; }
+h1 { font-family: 'Playfair Display', serif; }
+.header { background: #2b384b; padding: 40px 24px; }
+.header-inner { max-width: 900px; margin: 0 auto; }
+.header-label { font-family: 'Ubuntu', sans-serif; font-size: 11px; font-weight: 500; letter-spacing: 2px; text-transform: uppercase; color: #f6c65b; margin-bottom: 10px; }
+.header h1 { font-size: 32px; font-weight: 700; color: #ffffff; letter-spacing: -0.3px; margin-bottom: 8px; }
+.header p { font-family: 'Ubuntu', sans-serif; color: #b5dcd4; font-size: 14px; }
+.container { max-width: 900px; margin: 0 auto; padding: 28px 24px 80px; }
+.controls { display: flex; gap: 10px; margin-bottom: 24px; flex-wrap: wrap; }
+input#search { flex: 1; min-width: 200px; padding: 10px 14px; border: 1px solid #c6dae1; border-radius: 8px; font-family: 'Montserrat', sans-serif; font-size: 13.5px; color: #2b384b; outline: none; }
+input#search:focus { border-color: #5aacb9; }
+.filter-btn { padding: 10px 16px; border: 1px solid #c6dae1; border-radius: 8px; background: #ffffff; font-family: 'Montserrat', sans-serif; font-size: 13px; font-weight: 600; color: #173b55; cursor: pointer; }
+.filter-btn.active { background: #2b384b; color: #ffffff; border-color: #2b384b; }
+.count { font-family: 'Ubuntu', sans-serif; font-size: 12px; color: #7C8091; margin-bottom: 16px; }
+.entry { display: flex; align-items: center; justify-content: space-between; gap: 16px; background: #ffffff; border: 1px solid #c6dae1; border-radius: 10px; padding: 16px 20px; margin-bottom: 10px; text-decoration: none; color: inherit; transition: border-color 0.15s; }
+.entry:hover { border-color: #5aacb9; }
+.entry-main { display: flex; flex-direction: column; gap: 4px; }
+.entry-name { font-size: 15px; font-weight: 700; color: #2b384b; }
+.entry-meta { font-family: 'Ubuntu', sans-serif; font-size: 12px; color: #7C8091; }
+.entry-right { display: flex; align-items: center; gap: 10px; flex-shrink: 0; }
+.badge { font-family: 'Ubuntu', sans-serif; font-size: 10px; font-weight: 500; text-transform: uppercase; letter-spacing: 1px; padding: 4px 10px; border-radius: 20px; }
+.badge-complete { background: #d3e0d5; color: #173b55; }
+.badge-progress { background: #f6c65b; color: #2b384b; }
+.badge-doctype { background: #c6dae1; color: #173b55; }
+.arrow { color: #5aacb9; font-size: 18px; }
+.empty { text-align: center; padding: 60px 20px; color: #7C8091; font-size: 14px; }
+</style></head>
+<body>
+<div class="header">
+  <div class="header-inner">
+    <div class="header-label">The Brave Pivot</div>
+    <h1>Build Journals</h1>
+    <p>Every automation Cindy has built, documented, and shipped.</p>
+  </div>
+</div>
+<div class="container">
+  <div class="controls">
+    <input type="text" id="search" placeholder="Search by project name...">
+    <button class="filter-btn active" data-filter="all">All</button>
+    <button class="filter-btn" data-filter="Complete">Complete</button>
+    <button class="filter-btn" data-filter="In Progress">In Progress</button>
+  </div>
+  <div class="count" id="count"></div>
+  <div id="list"></div>
+</div>
+<script>
+let allEntries = [];
+let currentFilter = 'all';
+let currentSearch = '';
+
+fetch('./journals.json')
+  .then(r => r.ok ? r.json() : [])
+  .catch(() => [])
+  .then(data => {
+    allEntries = Array.isArray(data) ? data.slice().reverse() : [];
+    render();
+  });
+
+function render() {
+  const list = document.getElementById('list');
+  const count = document.getElementById('count');
+  const filtered = allEntries.filter(e => {
+    const matchesFilter = currentFilter === 'all' || e.build_status === currentFilter;
+    const matchesSearch = !currentSearch || (e.project_name || '').toLowerCase().includes(currentSearch.toLowerCase());
+    return matchesFilter && matchesSearch;
+  });
+
+  count.textContent = filtered.length + (filtered.length === 1 ? ' journal' : ' journals');
+
+  if (filtered.length === 0) {
+    list.innerHTML = '<div class="empty">No build journals found yet.</div>';
+    return;
+  }
+
+  list.innerHTML = filtered.map(e => {
+    const statusClass = e.build_status === 'Complete' ? 'badge-complete' : 'badge-progress';
+    const date = e.session_date || '';
+    const docType = e.document_type || 'Build Journal';
+    return `<a class="entry" href="${e.url}">
+      <div class="entry-main">
+        <div class="entry-name">${escapeHtml(e.project_name || 'Untitled')}</div>
+        <div class="entry-meta">${escapeHtml(date)}</div>
+      </div>
+      <div class="entry-right">
+        <span class="badge badge-doctype">${escapeHtml(docType)}</span>
+        <span class="badge ${statusClass}">${escapeHtml(e.build_status || '')}</span>
+        <span class="arrow">&rarr;</span>
+      </div>
+    </a>`;
+  }).join('');
+}
+
+function escapeHtml(str) {
+  const div = document.createElement('div');
+  div.textContent = str;
+  return div.innerHTML;
+}
+
+document.getElementById('search').addEventListener('input', (e) => {
+  currentSearch = e.target.value;
+  render();
+});
+
+document.querySelectorAll('.filter-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    currentFilter = btn.dataset.filter;
+    render();
+  });
+});
+</script>
+</body></html>
